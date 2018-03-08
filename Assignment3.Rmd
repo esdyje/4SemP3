@@ -30,43 +30,17 @@ library(brms);library(rethinking)
 #subsetting data
 visit1=datastart[datastart$Visit==1,]
 ASDchildren=visit1[visit1$ASD==1,]
-
-#creating linear model
-Lmodel <- map(
-alist(
-ADOS ~ dnorm( mu , sigma ) ,
-mu <- a + b*VerbalIQ ,
-a ~ dnorm( 10, 10) , #mean 10, sd 10
-b ~ dnorm(  0,  10) ,
-sigma ~ dunif( 0 , 20 )
-) ,
-data=ASDchildren )
-
-#outcome of Lmodel
-precis(Lmodel)
-
-#mu mean
-mu.mean <- apply( mu , 2 , mean )
-mu.HPDI <- apply( mu , 2 , HPDI , prob=0.89 )
-
-# plotting
-sim.verbalIQ=sim(Lmodel, ASDchildren=list(VerbalIQ))
-str(sim.verbalIQ)
-
-verbalIQ.PI <- apply( sim.height , 2 , PI , prob=0.89 )
-
-# # plot raw data
-# plot( ADOS ~ VerbalIQ , ASDchildren , col=col.alpha(rangi2,0.5) )
-# # draw MAP line
-# lines(  , mu.mean )
-# # draw HPDI region for line
-# shade( ho , ASDchildren$VerbalIQ )
-# # draw PI region for simulated heights
-# shade( verbalIQ.PI , weight.seq )
 # 
-# mu=link(Lmodel)
-# ho=HPDI(mu)
+# #scaling
+# ASDchildren$ADOS=scale(ASDchildren$ADOS)
+# ASDchildren$NonVerbalIQ=scale(ASDchildren$NonVerbalIQ)
+# ASDchildren$VerbalIQ=scale(ASDchildren$VerbalIQ)
+# ASDchildren$SocialIQ=scale(ASDchildren$SocialIQ)
 
+ASDchildren$SocialIQ=ASDchildren$SocialIQ-mean(ASDchildren$SocialIQ)
+ASDchildren$VerbalIQ=ASDchildren$VerbalIQ-mean(ASDchildren$VerbalIQ)
+ASDchildren$ADOS=ASDchildren$ADOS-mean(ASDchildren$ADOS)
+ASDchildren$NonVerbalIQ=ASDchildren$NonVerbalIQ-mean(ASDchildren$NonVerbalIQ)
 ```
 
 The questions you will have to answer are:
@@ -75,9 +49,162 @@ The questions you will have to answer are:
 1.1. Verbal IQ and ADOS
 1.2. Non Verbal IQ and ADOS
 1.3. Social IQ and ADOS
+#Verbal IQ
 ```{r}
+#creating linear model
+Lmodel <- map(
+alist(
+ADOS ~ dnorm( mu , sigma ) ,
+mu <- a + b*VerbalIQ ,
+a ~ dnorm( 0, 10) , #mean 10, sd 10
+b ~ dnorm(  0,  5) ,
+sigma ~ dunif( 0 , 5 )
+) ,
+data=ASDchildren )
+
+#outcome of Lmodel
+precis(Lmodel)
+
+# To plot the model
+ScaleVIQ.seq <- seq( from=-10 , to=15 , by=0.1 )
+
+mu <- link( Lmodel , data=data.frame(VerbalIQ=ScaleVIQ.seq))#simulating verbal IQ in model Lmodel on sequence
+mu.mean <- apply( mu , 2 , mean )                           #mean of mu
+mu.HPDI <- apply( mu , 2 , HPDI , prob=0.89 )               #HPDI of mu
+
+sim.ados <- sim( Lmodel , data=list(VerbalIQ=ScaleVIQ.seq) )#simulating dara
+#summarizing the distribution of the simulation
+ados.HPDI <- apply( sim.ados , 2 , HPDI , prob=0.89 )
+
+# plot raw data
+plot(ADOS ~ VerbalIQ , ASDchildren , col=col.alpha(rangi2,0.5) )
+# draw MAP line
+lines( ScaleVIQ.seq , mu.mean )
+# draw HPDI region for line
+shade(mu.HPDI , ScaleVIQ.seq)
+# draw PI region for simulated heights
+shade(ados.HPDI , ScaleVIQ.seq)
+```
+
+# Nonverbal IQ
+```{r}
+modelNVIQ <- map(
+    alist(
+      ADOS ~ dnorm( mu , sigma ) ,
+      mu <- a + b*NonVerbalIQ ,
+      a ~ dnorm( 0, 10) , #mean 10, sd 10
+      b ~ dnorm(  0,  5) ,
+      sigma ~ dunif( 0 , 5 )
+    ) ,
+    data=ASDchildren )
+
+#outcome of Lmodel
+precis(modelNVIQ)
+
+# To plot the model
+ScaleNVIQ.seq <- seq( from=-15 , to=20 , by=0.1 )
+
+mu <- link( modelNVIQ , data=data.frame(NonVerbalIQ=ScaleNVIQ.seq))#simulating verbal IQ in model on sequence
+mu.mean <- apply( mu , 2 , mean )                           #mean of mu
+mu.HPDI <- apply( mu , 2 , HPDI , prob=0.89 )               #HPDI of mu
+
+sim.ados <- sim( modelNVIQ , data=list(NonVerbalIQ=ScaleNVIQ.seq) )#simulating dara
+#summarizing the distribution of the simulation
+ados.HPDI <- apply( sim.ados , 2 , HPDI , prob=0.89 )
+
+# plot raw data
+plot(ADOS ~ NonVerbalIQ , ASDchildren , col=col.alpha(rangi2,0.5) )
+# draw MAP line
+lines( ScaleNVIQ.seq , mu.mean )
+# draw HPDI region for line
+shade(mu.HPDI , ScaleNVIQ.seq)
+# draw PI region for simulated heights
+shade(ados.HPDI , ScaleNVIQ.seq)
 
 ```
+
+# Social IQ
+```{r}
+modelSIQ <- map(
+    alist(
+      ADOS ~ dnorm( mu , sigma ) ,
+      mu <- a + b*SocialIQ ,
+      a ~ dnorm( 0, 10) , #mean 10, sd 10
+      b ~ dnorm(  0,  5) ,
+      sigma ~ dunif( 0 , 5 )
+    ) ,
+    data=ASDchildren )
+
+#outcome of Lmodel
+precis(modelSIQ)
+
+# To plot the model
+ScaleSIQ.seq <- seq( from=-20 , to=30 , by=0.1 )
+
+mu <- link( modelSIQ , data=data.frame(SocialIQ=ScaleSIQ.seq))#simulating verbal IQ in model on sequence
+mu.mean <- apply( mu , 2 , mean )                           #mean of mu
+mu.HPDI <- apply( mu , 2 , HPDI , prob=0.89 )               #HPDI of mu
+
+sim.ados <- sim( modelSIQ , data=list(SocialIQ=ScaleSIQ.seq) )#simulating dara
+#summarizing the distribution of the simulation
+ados.HPDI <- apply( sim.ados , 2 , HPDI , prob=0.89 )
+
+# plot raw data
+plot(ADOS ~ SocialIQ , ASDchildren , col=col.alpha(rangi2,0.5) )
+# draw MAP line
+lines( ScaleSIQ.seq , mu.mean )
+# draw HPDI region for line
+shade(mu.HPDI , ScaleSIQ.seq)
+# draw PI region for simulated heights
+shade(ados.HPDI , ScaleSIQ.seq)
+```
+
+#trying to make a function to do this for Non Verbal IQ and Social IQ
+```{r}
+modelNVIQ <- map(
+    alist(
+      ADOS ~ dnorm( mu , sigma ) ,
+      mu <- a + b*NonVerbalIQ ,
+      a ~ dnorm( 0, 10) , #mean 10, sd 10
+      b ~ dnorm(  0,  5) ,
+      sigma ~ dunif( 0 , 5 )
+    ) ,
+    data=ASDchildren )
+
+ADOS_function=function(data, model){
+  #outcome of Lmodel
+  results=precis(model)
+  
+  # To plot the model
+  data.seq <- seq( from=-10 , to=15 , by=0.1 )
+  
+  mu <- link( model , data=data.frame(IQ=data.seq))           #simulating verbal IQ in model Lmodel on sequence
+  mu.mean <- apply( mu , 2 , mean )                           #mean of mu
+  mu.HPDI <- apply( mu , 2 , HPDI , prob=0.89 )               #HPDI of mu
+  
+  sim.ados <- sim( model , data=list(IQ=data.seq) )#simulating dara
+  #summarizing the distribution of the simulation
+  ados.HPDI <- apply( sim.ados , 2 , HPDI , prob=0.89 )
+  
+  # plot data
+  plot = alist( 
+    plot(ADOS ~ IQ , data , col=col.alpha(rangi2,0.5) ),
+    # draw MAP line
+    lines( data.seq , mu.mean),
+    # draw HPDI region for line
+    shade(mu.HPDI , data.seq),
+    # draw PI region for simulated heights
+    shade(ados.HPDI , data.seq))
+  
+  return(results)
+  return(plot)
+}
+
+ADOS_function(ASDchildren, modelNVIQ)
+
+```
+
+
 
 2. Do the different aspects of IQ account for different portions of the variance in ADOS? 
 2.1. Does it make sense to have all IQ measures in the same model? First write a few lines answering the question and motivating your answer, including a discussion as to what happens when you put all of them in the same model. Then build a model following your answer. If your answer is "no", you are not free, you still have to answer: are there alternative ways of answering the question?
